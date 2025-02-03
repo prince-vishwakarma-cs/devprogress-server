@@ -4,7 +4,7 @@ import { User } from "../models/user.js";
 import { ErrorHandler } from "../utils/errorhandler.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { deleteFromCloudinary, uploadToCloudinary } from "../utils/features.js";
+import { deleteFromCloudinary, sendToken, uploadToCloudinary } from "../utils/features.js";
 
 export const newUser = TryCatch(async (req, res) => {
   const { _id, name, password } = req.body;
@@ -24,21 +24,7 @@ export const newUser = TryCatch(async (req, res) => {
     name,
   });
 
-  const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY_TOKEN);
-
-  const isProduction = process.env.NODE_ENV === 'production';
-
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: isProduction,  // Set 'secure' to true for production environments
-  expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-  sameSite: 'Strict',  // Adjust based on your app’s cross-origin requirements
-});
-
-  res.status(201).json({
-    success: true,
-    message: "User Created Successfully",
-  });
+  sendToken(user,201,res,"User Created")
 });
 
 export const login = TryCatch(async (req, res) => {
@@ -55,35 +41,22 @@ export const login = TryCatch(async (req, res) => {
 
   if (!isSame) throw new ErrorHandler("UserId or password is wrong", 400);
 
-  const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY_TOKEN);
-
-  const isProduction = process.env.NODE_ENV === 'production';
-
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: isProduction,  // Set 'secure' to true for production environments
-  expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-  sameSite: 'Strict',  // Adjust based on your app’s cross-origin requirements
-});
-
-  res.status(201).json({
-    success: true,
-    user: {
-      _id: user._id,
-      name: user.name,
-    },
-  });
+  sendToken(user,200,res, `Welcome back, ${user.name}`)
 });
 
 export const logout = TryCatch(async (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-  });
-
-  res.status(200).json({
-    success: true,
-    message: "Successfully logged out",
-  });
+  res
+    .status(200)
+    .cookie("token", "", {
+      expires: new Date(Date.now()),
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
+    })
+    .json({
+      success: true,
+      message: "Logged Out",
+    });
 });
 
 export const userInfo = TryCatch(async (req, res) => {
@@ -94,12 +67,6 @@ export const userInfo = TryCatch(async (req, res) => {
   const user = await User.findById(_id);
 
   if (!user) throw new ErrorHandler("User not found", 404);
-
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Ensure secure flag for production
-    sameSite: 'Strict',  // Adjust based on your app's cross-origin needs
-  });
 
   res.status(200).json({
     success: true,

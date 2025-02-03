@@ -37,3 +37,25 @@ export const deleteFromCloudinary = async (publicId) => {
     });
   });
 };
+
+export const sendToken = (user, statusCode, res, message) => {
+  const token = jwt.sign(
+    {
+      _id: user._id,
+    },
+    process.env.SECRET_KEY_TOKEN
+  );
+  const options = {
+    expires: new Date(
+      Date.now() + 7* 24 * 60 * 60 * 1000
+    ),
+    sameSite: "none",
+    secure: true,
+    httpOnly: true,
+  };
+  res.status(statusCode).cookie("token", token, options).json({
+    success: true,
+    user,
+    message,
+  });
+};

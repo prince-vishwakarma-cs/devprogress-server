@@ -26,10 +26,14 @@ export const newUser = TryCatch(async (req, res) => {
 
   const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY_TOKEN);
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-  });
+  const isProduction = process.env.NODE_ENV === 'production';
+
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: isProduction,  // Set 'secure' to true for production environments
+  expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+  sameSite: 'Strict',  // Adjust based on your app’s cross-origin requirements
+});
 
   res.status(201).json({
     success: true,
@@ -53,10 +57,14 @@ export const login = TryCatch(async (req, res) => {
 
   const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY_TOKEN);
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-  });
+  const isProduction = process.env.NODE_ENV === 'production';
+
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: isProduction,  // Set 'secure' to true for production environments
+  expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+  sameSite: 'Strict',  // Adjust based on your app’s cross-origin requirements
+});
 
   res.status(201).json({
     success: true,
@@ -86,6 +94,12 @@ export const userInfo = TryCatch(async (req, res) => {
   const user = await User.findById(_id);
 
   if (!user) throw new ErrorHandler("User not found", 404);
+
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Ensure secure flag for production
+    sameSite: 'Strict',  // Adjust based on your app's cross-origin needs
+  });
 
   res.status(200).json({
     success: true,

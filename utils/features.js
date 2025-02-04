@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import cloudinary from "../middlewares/cloudinary.js";
+import jwt from "jsonwebtoken"
 
 export const connectDB = (mongoURI) => {
   mongoose
